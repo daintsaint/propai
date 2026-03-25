@@ -31,6 +31,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Nebula Configuration (AI Agent Platform)
+    |--------------------------------------------------------------------------
+    |
+    | Configure Nebula integration for AI agent automation.
+    | This enables webhook communication and agent triggering.
+    |
+    */
+    'nebula' => [
+        'base_url' => env('NEBULA_BASE_URL', 'https://api.nebula.ai'),
+        'api_key' => env('NEBULA_API_KEY'),
+        'webhook_secret' => env('NEBULA_WEBHOOK_SECRET'),
+        'webhook_url' => env('NEBULA_WEBHOOK_URL', '/api/webhooks/nebula'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Telegram Configuration (for agent integrations)
     |--------------------------------------------------------------------------
     */
