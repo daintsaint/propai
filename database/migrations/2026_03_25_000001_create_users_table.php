@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('vertical_type')->nullable()->default('general');
+            $table->string('subscription_status')->default('inactive'); // inactive, active, cancelled, expired
             $table->rememberToken();
             $table->timestamps();
         });
