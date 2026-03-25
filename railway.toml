@@ -1,6 +1,6 @@
 # Railway deployment configuration for PropAI
 # Laravel 11 + PHP 8.3 + Vue 3 + MySQL
-# Reference: https://docs.railway.com/reference/config-as-code
+# Reference: https://docs.railway.com/reference/code-as-config
 
 "$schema" = "https://railway.com/railway.schema.json"
 
