@@ -1,96 +1,100 @@
-APP_NAME="PropAI - AI Agent as a Service"
-APP_ENV=local
-APP_KEY=base64:GENERATE_WITH_ARTISAN_KEY_GENERATOR=
-APP_DEBUG=true
-APP_URL=http://localhost:8000
+<?php
 
-APP_LOCALE=en
-APP_FALLBACK_LOCALE=en
-APP_FAKER_LOCALE=en_US
+return [
 
-APP_MAINTENANCE_DRIVER=file
-APP_MAINTENANCE_STORE=database
+    /*
+    |--------------------------------------------------------------------------
+    | Third Party Services
+    |--------------------------------------------------------------------------
+    |
+    | This file is for storing the credentials for third party services such
+    | as Mailgun, Postmark, AWS, Stripe and more. This file provides the 
+    | default configuration for these services.
+    |
+    */
 
-BCRYPT_ROUNDS=12
+    /*
+    |--------------------------------------------------------------------------
+    | Stripe Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure Stripe for processing subscription payments.
+    | Get your API keys from https://dashboard.stripe.com/apikeys
+    |
+    */
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'webhook_url' => env('STRIPE_WEBHOOK_URL', '/api/webhooks/stripe'),
+        
+        // Product IDs for each vertical bundle
+        'products' => [
+            'real_estate' => env('STRIPE_PRODUCT_ID_REAL_ESTATE', 'prod_real_estate_agent_bundle'),
+            'ecommerce' => env('STRIPE_PRODUCT_ID_ECOMMERCE', 'prod_ecommerce_store_bundle'),
+            'local_business' => env('STRIPE_PRODUCT_ID_LOCAL_BUSINESS', 'prod_local_business_bundle'),
+            'professional' => env('STRIPE_PRODUCT_ID_PROFESSIONAL', 'prod_professional_services_bundle'),
+            'saas' => env('STRIPE_PRODUCT_ID_SAAS', 'prod_saas_startup_bundle'),
+        ],
+    ],
 
-LOG_CHANNEL=stack
-LOG_STACK=single
-LOG_DEPRECATIONS_CHANNEL=null
-LOG_LEVEL=debug
+    /*
+    |--------------------------------------------------------------------------
+    | Nebula Configuration (AI Agent Platform)
+    |--------------------------------------------------------------------------
+    |
+    | Configure Nebula integration for AI agent automation.
+    | This enables webhook communication and agent triggering.
+    |
+    */
+    'nebula' => [
+        'base_url' => env('NEBULA_BASE_URL', 'https://api.nebula.ai'),
+        'api_key' => env('NEBULA_API_KEY'),
+        'webhook_secret' => env('NEBULA_WEBHOOK_SECRET'),
+        'webhook_url' => env('NEBULA_WEBHOOK_URL', '/api/webhooks/nebula'),
+    ],
 
-DB_CONNECTION=sqlite
-DB_DATABASE=database/database.sqlite
+    /*
+    |--------------------------------------------------------------------------
+    | Telegram Configuration (for agent integrations)
+    |--------------------------------------------------------------------------
+    */
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'api_url' => env('TELEGRAM_API_URL', 'https://api.telegram.org/bot'),
+    ],
 
-SESSION_DRIVER=database
-SESSION_LIFETIME=120
-SESSION_ENCRYPT=false
-SESSION_PATH=/
-SESSION_DOMAIN=null
+    /*
+    |--------------------------------------------------------------------------
+    | Mail Service Configuration
+    |--------------------------------------------------------------------------
+    */
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        'scheme' => 'https',
+    ],
 
-BROADCAST_CONNECTION=log
-FILESYSTEM_DISK=local
-QUEUE_CONNECTION=database
-CACHE_STORE=file
-CACHE_PREFIX=
+    'postmark' => [
+        'token' => env('POSTMARK_TOKEN'),
+    ],
 
-MEMCACHED_HOST=127.0.0.1
+    'ses' => [
+        'key' => env('AWS_ACCESS_KEY_ID'),
+        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    ],
 
-REDIS_CLIENT=phpredis
-REDIS_HOST=127.0.0.1
-REDIS_PASSWORD=null
-REDIS_PORT=6379
+    'resend' => [
+        'key' => env('RESEND_KEY'),
+    ],
 
-MAIL_MAILER=log
-MAIL_HOST=127.0.0.1
-MAIL_PORT=2525
-MAIL_USERNAME=null
-MAIL_PASSWORD=null
-MAIL_ENCRYPTION=null
-MAIL_FROM_ADDRESS="hello@example.com"
-MAIL_FROM_NAME="${APP_NAME}"
+    'slack' => [
+        'notifications' => [
+            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
+            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+        ],
+    ],
 
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_DEFAULT_REGION=us-east-1
-AWS_BUCKET=
-AWS_USE_PATH_STYLE_ENDPOINT=false
-
-VITE_APP_NAME="${APP_NAME}"
-
-# Stripe Configuration (Payment Processing)
-STRIPE_KEY=pk_test_YOUR_STRIPE_PUBLIC_KEY
-STRIPE_SECRET=sk_test_YOUR_STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET=whsec_YOUR_WEBHOOK_SECRET
-STRIPE_WEBHOOK_URL=/api/webhooks/stripe
-
-# Stripe Product IDs (one per vertical bundle)
-STRIPE_PRODUCT_ID_REAL_ESTATE=prod_real_estate_agent_bundle
-STRIPE_PRODUCT_ID_ECOMMERCE=prod_ecommerce_store_bundle
-STRIPE_PRODUCT_ID_LOCAL_BUSINESS=prod_local_business_bundle
-STRIPE_PRODUCT_ID_PROFESSIONAL=prod_professional_services_bundle
-STRIPE_PRODUCT_ID_SAAS=prod_saas_startup_bundle
-
-# Nebula Configuration (AI Agent Platform)
-NEBULA_BASE_URL=https://api.nebula.ai
-NEBULA_API_KEY=YOUR_NEBULA_API_KEY
-NEBULA_WEBHOOK_SECRET=YOUR_NEBULA_WEBHOOK_SECRET
-NEBULA_WEBHOOK_URL=/api/webhooks/nebula
-
-# Telegram Configuration (Agent Integrations)
-TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
-TELEGRAM_API_URL=https://api.telegram.org/bot
-
-# Mailgun (Optional - for transactional emails)
-MAILGUN_DOMAIN=
-MAILGUN_SECRET=
-MAILGUN_ENDPOINT=api.mailgun.net
-
-# Postmark (Optional - alternative email service)
-POSTMARK_TOKEN=
-
-# Resend (Optional - modern email API)
-RESEND_KEY=
-
-# Slack Notifications (Optional)
-SLACK_BOT_USER_OAUTH_TOKEN=
-SLACK_BOT_USER_DEFAULT_CHANNEL=
+];
