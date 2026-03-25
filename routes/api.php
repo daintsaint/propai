@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\VerticalController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\WebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,8 +22,11 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// Stripe webhook (must be before auth middleware)
+// Webhook routes (public, with signature verification)
 Route::post('/webhooks/stripe', [SubscriptionController::class, 'webhook']);
+Route::post('/webhooks/nebula', [WebhookController::class, 'handleNebulaWebhook'])->name('api.webhooks.nebula');
+Route::post('/webhooks/telegram', [WebhookController::class, 'handleTelegramWebhook']);
+Route::post('/leads/ingest', [WebhookController::class, 'storeLead']);
 
 // Protected routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
@@ -56,16 +60,33 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/reactivate', [SubscriptionController::class, 'reactivate']);
     });
 
-    // Bundle-specific routes (require active subscription)
+    // Agent management routes (require active subscription)
     Route::middleware('subscription.active')->group(function () {
+        
+        // Agent CRUD operations
         Route::prefix('agents')->group(function () {
-            // Agent management routes (to be expanded)
             Route::get('/', [DashboardController::class, 'agents']);
+            Route::post('/', [DashboardController::class, 'createAgent']);
+            Route::get('/{id}', [DashboardController::class, 'getAgent']);
+            Route::put('/{id}', [DashboardController::class, 'updateAgent']);
+            Route::delete('/{id}', [DashboardController::class, 'deleteAgent']);
+            
+            // Agent actions
+            Route::post('/{id}/trigger', [WebhookController::class, 'triggerAgentAction']);
+            Route::post('/{id}/pause', [DashboardController::class, 'pauseAgent']);
+            Route::post('/{id}/resume', [DashboardController::class, 'resumeAgent']);
+            Route::get('/{id}/status', [DashboardController::class, 'agentStatus']);
+            Route::get('/{id}/metrics', [DashboardController::class, 'agentMetrics']);
         });
 
+        // Lead management routes
         Route::prefix('leads')->group(function () {
-            // Lead management routes (to be expanded)
             Route::get('/', [DashboardController::class, 'leads']);
+            Route::post('/', [DashboardController::class, 'createLead']);
+            Route::get('/{id}', [DashboardController::class, 'getLead']);
+            Route::put('/{id}', [DashboardController::class, 'updateLead']);
+            Route::delete('/{id}', [DashboardController::class, 'deleteLead']);
+            Route::post('/{id}/note', [DashboardController::class, 'addLeadNote']);
         });
     });
 });
