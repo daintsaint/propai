@@ -6,7 +6,29 @@
 [build]
 builder = "RAILPACK"
 
+# Build configuration for Laravel 11
+[build.railpack]
+# Install dependencies
+preInstall = "apt-get update && apt-get install -y git unzip curl"
+
+# Composer install
+install = "composer install --no-dev --optimize-autoloader"
+
+# Build frontend assets if using Vite/Mix
+build = """
+npm install && \
+npm run build
+"""
+
+# Post-build: Laravel optimization
+postBuild = """
+php artisan config:cache && \
+php artisan route:cache && \
+php artisan view:cache
+"""
+
 [deploy]
+# Start Laravel development server for Railway
 startCommand = "php artisan serve --host=0.0.0.0 --port=$PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 100
