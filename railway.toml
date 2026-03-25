@@ -6,7 +6,7 @@
 
 [build]
 builder = "RAILPACK"
-buildCommand = "composer install --no-dev --optimize-autoloader && npm install && npm run build"
+# Railpack auto-detects Laravel and runs: composer install && npm install && npm run build
 
 [deploy]
 startCommand = "php artisan serve --host=0.0.0.0 --port $PORT"
@@ -15,7 +15,7 @@ healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
-# PHP and Laravel configuration
+# PHP and Laravel configuration for production
 [environments.production]
 APP_ENV = "production"
 APP_DEBUG = "false"
