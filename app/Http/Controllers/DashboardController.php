@@ -1,0 +1,114 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+
+class DashboardController extends Controller
+{
+    /**
+     * Get dashboard overview with agents, leads, and subscription status.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $agentsCount = $user->agentInstances()->count();
+        $activeAgentsCount = $user->agentInstances()->active()->count();
+        
+        $leadsCount = $user->leads()->count();
+        $newLeadsCount = $user->leads()->new()->count();
+        $convertedLeadsCount = $user->leads()->byStatus('converted')->count();
+
+        $subscription = $user->subscription;
+        $verticalBundle = $subscription?->verticalBundle;
+
+        return response()->json([
+            'user' => $user,
+            'subscription' => [
+                'status' => $user->subscription_status,
+                'is_active' => $user->hasActiveSubscription(),
+                'current_bundle' => $verticalBundle ? [
+                    'name' => $verticalBundle->name,
+                    'slug' => $verticalBundle->slug,
+                    'monthly_price' => $verticalBundle->monthly_price,
+                ] : null,
+                'ends_at' => $subscription?->ends_at,
+            ],
+            'stats' => [
+                'total_agents' => $agentsCount,
+                'active_agents' => $activeAgentsCount,
+                'total_leads' => $leadsCount,
+                'new_leads' => $newLeadsCount,
+                'converted_leads' => $convertedLeadsCount,
+            ],
+        ]);
+    }
+
+    /**
+     * Get user's agents.
+     */
+    public function agents(Request $request): JsonResponse
+    {
+        $agents = $request->user()
+            ->agentInstances()
+            ->with('user')
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'agents' => $agents,
+        ]);
+    }
+
+    /**
+     * Get user's leads.
+     */
+    public function leads(Request $request): JsonResponse
+    {
+        $leads = $request->user()
+            ->leads()
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'leads' => $leads,
+        ]);
+    }
+
+    /**
+     * Get active agent instances.
+     */
+    public function activeAgents(Request $request): JsonResponse
+    {
+        $agents = $request->user()
+            ->agentInstances()
+            ->active()
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'agents' => $agents,
+        ]);
+    }
+
+    /**
+     * Get leads by status.
+     */
+    public function leadsByStatus(Request $request, string $status): JsonResponse
+    {
+        $leads = $request->user()
+            ->leads()
+            ->byStatus($status)
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'leads' => $leads,
+            'status' => $status,
+            'count' => $leads->count(),
+        ]);
+    }
+}
