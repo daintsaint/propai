@@ -8,8 +8,8 @@ builder = "RAILPACK"
 
 # Build configuration for Laravel 11
 [build.railpack]
-# Install dependencies
-preInstall = "apt-get update && apt-get install -y git unzip curl"
+# Install dependencies including bison for PHP compilation
+preInstall = "apt-get update && apt-get install -y git unzip curl bison re2c libpng-dev libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev"
 
 # Composer install
 install = "composer install --no-dev --optimize-autoloader"
@@ -20,7 +20,7 @@ npm install && \
 npm run build
 """
 
-# Post-build: Laravel optimization
+# Post-build: Laravel optimizations
 postBuild = """
 php artisan config:cache && \
 php artisan route:cache && \
