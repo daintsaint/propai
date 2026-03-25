@@ -1,6 +1,9 @@
 [build]
 builder_version = "2.2.0"
 
+# Railway will automatically use Dockerfile if present
+# These settings are fallbacks if Dockerfile is not used
+
 [build.railpack]
 install = "composer install --no-dev --optimize-autoloader"
 
@@ -20,6 +23,10 @@ healthcheck_path = "/"
 healthcheck_timeout = 100
 restart_policy_type = "ON_FAILURE"
 restart_policy_max_retries = 3
+
+# Docker-specific configuration
+# When Dockerfile is present, Railway uses it for building
+# The start command above is used for the running container
 
 [environments.production]
 APP_ENV = "production"
