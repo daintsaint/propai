@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful | PropAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .success-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            padding: 60px 40px;
+        }
+        
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            animation: scaleIn 0.5s ease;
+        }
+        
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+        
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+        
+        .success-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .success-message {
+            font-size: 18px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .bundle-info {
+            background: #f0fdf4;
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+        
+        .bundle-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #059669;
+            margin-bottom: 10px;
+        }
+        
+        .bundle-details {
+            color: #047857;
+            font-size: 16px;
+        }
+        
+        .next-steps {
+            text-align: left;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+        
+        .next-steps h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .next-steps ol {
+            margin-left: 20px;
+            color: #555;
+            line-height: 2;
+        }
+        
+        .next-steps li {
+            margin-bottom: 10px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.4);
+        }
+        
+        .receipt-info {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e1e5eb;
+            font-size: 14px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        
+        <h1 class="success-title">Payment Successful!</h1>
+        <p class="success-message">
+            Thank you for subscribing. Your AI agents are being provisioned and will be ready shortly.
+        </p>
+        
+        <div class="bundle-info">
+            <div class="bundle-name">{{ $bundle->name }} Bundle</div>
+            <div class="bundle-details">
+                ${% $bundle->monthly_price %}/month • Billed monthly<br>
+                Start Date: {{ now()->format('M d, Y') }}
+            </div>
+        </div>
+        
+        <div class="next-steps">
+            <h3>🚀 Next Steps:</h3>
+            <ol>
+                <li>Check your email for account confirmation</li>
+                <li>Complete your profile setup in the dashboard</li>
+                <li>Configure your AI agent preferences</li>
+                <li>Connect your integrations (Telegram, Gmail, etc.)</li>
+                <li>Start automating your workflow!</li>
+            </ol>
+        </div>
+        
+        <a href="{{ route('dashboard') }}" class="btn">Go to Dashboard</a>
+        
+        <div class="receipt-info">
+            A receipt has been sent to {{ Auth::user()->email }}<br>
+            Transaction ID: {{ $session->id }}
+        </div>
+    </div>
+</body>
+</html>
