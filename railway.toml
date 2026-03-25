@@ -1,39 +1,33 @@
 # Railway deployment configuration for PropAI
-# Laravel 11 + PHP 8.3 + Vue 3 + MySQL
-# Reference: https://docs.railway.com/reference/code-as-config
+# Laravel 11 + PHP 8.3 + SQLite
 
-"$schema" = "https://railway.com/railway.schema.json"
+"$schema" = "https://railway.app/railway.schema.json"
 
 [build]
 builder = "RAILPACK"
-# Railpack auto-detects Laravel and runs: composer install && npm install && npm run build
 
 [deploy]
-startCommand = "php artisan serve --host=0.0.0.0 --port $PORT"
+startCommand = "php artisan serve --host=0.0.0.0 --port=$PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
-# PHP and Laravel configuration for production
+# Production environment configuration
 [environments.production]
 APP_ENV = "production"
 APP_DEBUG = "false"
 LOG_CHANNEL = "errorlog"
 SESSION_DRIVER = "cookie"
 SESSION_SECURE_COOKIES = "false"
+DB_CONNECTION = "sqlite"
+DB_DATABASE = "/app/data/database.sqlite"
 
-# Cache configuration for production
-APP_CONFIG_CACHE = "/tmp/config.php"
-APP_EVENTS_CACHE = "/tmp/events.php"
-APP_PACKAGES_CACHE = "/tmp/packages.php"
-APP_ROUTES_CACHE = "/tmp/routes.php"
-APP_SERVICES_CACHE = "/tmp/services.php"
-VIEW_COMPILED_PATH = "/tmp/views"
-
-# Database connection (Railway MySQL service will provide these)
-DB_CONNECTION = "mysql"
-
-# Frontend build
-VITE_APP_NAME = "PropAI"
-NODE_ENV = "production"
+# Create persistent data directory
+[watch]
+ignorePaths = [
+    ".git",
+    "node_modules",
+    "vendor",
+    ".railway"
+]
