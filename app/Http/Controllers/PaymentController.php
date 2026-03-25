@@ -1,0 +1,191 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\VerticalBundle;
+use App\Models\Subscription;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Stripe\Stripe;
+use Stripe\Checkout\Session;
+use Stripe\Customer;
+
+class PaymentController extends Controller
+{
+    public function __construct()
+    {
+        Stripe::setApiKey(config('services.stripe.secret'));
+    }
+
+    /**
+     * Create Stripe checkout session for a bundle
+     */
+    public function checkout($bundleSlug)
+    {
+        $bundle = VerticalBundle::where('slug', $bundleSlug)->firstOrFail();
+        $user = Auth::user();
+
+        // Check for existing active subscription
+        $existingSubscription = Subscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if ($existingSubscription) {
+            return redirect()->route('dashboard.billing')
+                ->with('error', 'You already have an active subscription.');
+        }
+
+        // Create or retrieve Stripe customer
+        $stripeCustomerId = $user->stripe_customer_id;
+        
+        if (!$stripeCustomerId) {
+            $customer = Customer::create([
+                'email' => $user->email,
+                'name' => $user->name,
+                'metadata' => [
+                    'user_id' => $user->id,
+                ],
+            ]);
+            
+            $user->stripe_customer_id = $customer->id;
+            $user->save();
+            $stripeCustomerId = $customer->id;
+        }
+
+        // Create checkout session
+        $session = Session::create([
+            'customer' => $stripeCustomerId,
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => 'usd',
+                    'product_data' => [
+                        'name' => $bundle->name . ' Bundle',
+                        'description' => $bundle->description,
+                        'metadata' => [
+                            'bundle_id' => $bundle->id,
+                            'bundle_slug' => $bundle->slug,
+                        ],
+                    ],
+                    'unit_amount' => $bundle->monthly_price * 100, // Convert to cents
+                    'recurring' => [
+                        'interval' => 'month',
+                    ],
+                ],
+                'quantity' => 1,
+            ]],
+            'mode' => 'subscription',
+            'success_url' => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => route('payment.cancel'),
+            'metadata' => [
+                'user_id' => $user->id,
+                'bundle_id' => $bundle->id,
+                'bundle_slug' => $bundle->slug,
+            ],
+        ]);
+
+        return redirect($session->url);
+    }
+
+    /**
+     * Handle successful payment
+     */
+    public function success(Request $request)
+    {
+        $sessionId = $request->get('session_id');
+
+        if (!$sessionId) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Invalid session.');
+        }
+
+        try {
+            $session = Session::retrieve($sessionId);
+            
+            if ($session->payment_status === 'paid') {
+                $userId = $session->metadata['user_id'];
+                $bundleId = $session->metadata['bundle_id'];
+                $bundleSlug = $session->metadata['bundle_slug'];
+                $stripeSubscriptionId = $session->subscription;
+
+                $bundle = VerticalBundle::findOrFail($bundleId);
+
+                // Create or update subscription
+                Subscription::updateOrCreate(
+                    ['user_id' => $userId],
+                    [
+                        'vertical_bundle_id' => $bundleId,
+                        'stripe_subscription_id' => $stripeSubscriptionId,
+                        'status' => 'active',
+                        'monthly_price' => $bundle->monthly_price,
+                        'starts_at' => now(),
+                        'ends_at' => null,
+                    ]
+                );
+
+                // Update user's vertical type
+                $user = \App\Models\User::find($userId);
+                if ($user) {
+                    $user->vertical_type = $bundleSlug;
+                    $user->subscription_status = 'active';
+                    $user->save();
+                }
+
+                return view('billing.success', [
+                    'bundle' => $bundle,
+                    'session' => $session,
+                ]);
+            }
+        } catch (\Exception $e) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Payment verification failed: ' . $e->getMessage());
+        }
+
+        return redirect()->route('dashboard')
+            ->with('error', 'Payment was not completed.');
+    }
+
+    /**
+     * Handle cancelled checkout
+     */
+    public function cancel()
+    {
+        return view('billing.cancel');
+    }
+
+    /**
+     * Create customer billing portal session
+     */
+    public function portal()
+    {
+        $user = Auth::user();
+        
+        $subscription = Subscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$subscription || !$subscription->stripe_subscription_id) {
+            return redirect()->route('dashboard.billing')
+                ->with('error', 'No active subscription found.');
+        }
+
+        try {
+            $stripeCustomerId = $user->stripe_customer_id;
+            
+            if (!$stripeCustomerId) {
+                return redirect()->route('dashboard.billing')
+                    ->with('error', 'Customer record not found.');
+            }
+
+            $portalSession = \Stripe\BillingPortal\Session::create([
+                'customer' => $stripeCustomerId,
+                'return_url' => route('dashboard.billing'),
+            ]);
+
+            return redirect($portalSession->url);
+        } catch (\Exception $e) {
+            return redirect()->route('dashboard.billing')
+                ->with('error', 'Failed to create billing portal: ' . $e->getMessage());
+        }
+    }
+}
