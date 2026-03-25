@@ -1,0 +1,13 @@
+# Mise configuration for Railway Railpack
+# Installs PHP 8.3 and Composer globally for Laravel application
+# Reference: https://mise.codes/
+
+[tools]
+# Install PHP 8.3
+php = "8.3"
+
+# Install Composer globally
+composer = "latest"
+
+# Node.js for frontend build (Vite)
+nodejs = "20"
