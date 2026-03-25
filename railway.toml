@@ -1,33 +1,29 @@
 # Railway deployment configuration for PropAI
 # Laravel 11 + PHP 8.3 + Vue 3 + MySQL
+# Reference: https://docs.railway.com/reference/config-as-code
+
+"$schema" = "https://railway.com/railway.schema.json"
 
 [build]
-builder = "nix"
+builder = "RAILPACK"
+buildCommand = "composer install --no-dev --optimize-autoloader && npm install && npm run build"
 
 [deploy]
-startCommand = "php artisan serve --host 0.0.0.0 --port $PORT"
-restartPolicyType = "on_failure"
+startCommand = "php artisan serve --host=0.0.0.0 --port $PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
 
-# Build phase configuration
-[build.nix]
-packages = [
-  "php83",
-  "php83Packages.composer",
-  "nodejs_20",
-  "mysql80"
-]
-
-# Environment variables required for deployment
-[vars]
-APP_NAME = "PropAI"
+# PHP and Laravel configuration
+[environments.production]
 APP_ENV = "production"
-APP_KEY = "${{ secrets.APP_KEY }}"
 APP_DEBUG = "false"
-APP_URL = "${{ secrets.APP_URL }}"
+LOG_CHANNEL = "errorlog"
+SESSION_DRIVER = "cookie"
+SESSION_SECURE_COOKIES = "false"
 
-# PHP Configuration
+# Cache configuration for production
 APP_CONFIG_CACHE = "/tmp/config.php"
 APP_EVENTS_CACHE = "/tmp/events.php"
 APP_PACKAGES_CACHE = "/tmp/packages.php"
@@ -35,22 +31,9 @@ APP_ROUTES_CACHE = "/tmp/routes.php"
 APP_SERVICES_CACHE = "/tmp/services.php"
 VIEW_COMPILED_PATH = "/tmp/views"
 
-LOG_CHANNEL = "errorlog"
-SESSION_DRIVER = "cookie"
-SESSION_SECURE_COOKIES = "false"
-
-# Database (Railway MySQL service will provide these)
+# Database connection (Railway MySQL service will provide these)
 DB_CONNECTION = "mysql"
-DB_HOST = "${{ secrets.DB_HOST }}"
-DB_PORT = "${{ secrets.DB_PORT }}"
-DB_DATABASE = "${{ secrets.DB_DATABASE }}"
-DB_USERNAME = "${{ secrets.DB_USERNAME }}"
-DB_PASSWORD = "${{ secrets.DB_PASSWORD }}"
 
 # Frontend build
 VITE_APP_NAME = "PropAI"
 NODE_ENV = "production"
-
-# Railway-specific
-RAILWAY_PROJECT_ID = "${{ secrets.RAILWAY_PROJECT_ID }}"
-RAILWAY_ENVIRONMENT_ID = "${{ secrets.RAILWAY_ENVIRONMENT_ID }}"
