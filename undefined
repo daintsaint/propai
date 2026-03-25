@@ -1,100 +1,201 @@
 <?php
 
-return [
+namespace App\Http\Controllers;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Third Party Services
-    |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS, Stripe and more. This file provides the 
-    | default configuration for these services.
-    |
-    */
+use App\Models\VerticalBundle;
+use App\Models\Subscription;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Stripe\Stripe;
+use Stripe\Checkout\Session;
+use Stripe\Customer;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Stripe Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Configure Stripe for processing subscription payments.
-    | Get your API keys from https://dashboard.stripe.com/apikeys
-    |
-    */
-    'stripe' => [
-        'key' => env('STRIPE_KEY'),
-        'secret' => env('STRIPE_SECRET'),
-        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-        'webhook_url' => env('STRIPE_WEBHOOK_URL', '/api/webhooks/stripe'),
+class PaymentController extends Controller
+{
+    public function __construct()
+    {
+        Stripe::setApiKey(config('services.stripe.secret'));
+    }
+
+    /**
+     * Show checkout page with bundle details
+     */
+    public function checkoutPage($bundleSlug)
+    {
+        $bundle = VerticalBundle::where('slug', $bundleSlug)->firstOrFail();
         
-        // Product IDs for each vertical bundle
-        'products' => [
-            'real_estate' => env('STRIPE_PRODUCT_ID_REAL_ESTATE', 'prod_real_estate_agent_bundle'),
-            'ecommerce' => env('STRIPE_PRODUCT_ID_ECOMMERCE', 'prod_ecommerce_store_bundle'),
-            'local_business' => env('STRIPE_PRODUCT_ID_LOCAL_BUSINESS', 'prod_local_business_bundle'),
-            'professional' => env('STRIPE_PRODUCT_ID_PROFESSIONAL', 'prod_professional_services_bundle'),
-            'saas' => env('STRIPE_PRODUCT_ID_SAAS', 'prod_saas_startup_bundle'),
-        ],
-    ],
+        return view('billing.checkout', compact('bundle'));
+    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Nebula Configuration (AI Agent Platform)
-    |--------------------------------------------------------------------------
-    |
-    | Configure Nebula integration for AI agent automation.
-    | This enables webhook communication and agent triggering.
-    |
-    */
-    'nebula' => [
-        'base_url' => env('NEBULA_BASE_URL', 'https://api.nebula.ai'),
-        'api_key' => env('NEBULA_API_KEY'),
-        'webhook_secret' => env('NEBULA_WEBHOOK_SECRET'),
-        'webhook_url' => env('NEBULA_WEBHOOK_URL', '/api/webhooks/nebula'),
-    ],
+    /**
+     * Create Stripe checkout session for a bundle
+     */
+    public function checkout($bundleSlug)
+    {
+        $bundle = VerticalBundle::where('slug', $bundleSlug)->firstOrFail();
+        $user = Auth::user();
 
-    /*
-    |--------------------------------------------------------------------------
-    | Telegram Configuration (for agent integrations)
-    |--------------------------------------------------------------------------
-    */
-    'telegram' => [
-        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
-        'api_url' => env('TELEGRAM_API_URL', 'https://api.telegram.org/bot'),
-    ],
+        // Check for existing active subscription
+        $existingSubscription = Subscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
 
-    /*
-    |--------------------------------------------------------------------------
-    | Mail Service Configuration
-    |--------------------------------------------------------------------------
-    */
-    'mailgun' => [
-        'domain' => env('MAILGUN_DOMAIN'),
-        'secret' => env('MAILGUN_SECRET'),
-        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
-        'scheme' => 'https',
-    ],
+        if ($existingSubscription) {
+            return redirect()->route('dashboard.billing')
+                ->with('error', 'You already have an active subscription.');
+        }
 
-    'postmark' => [
-        'token' => env('POSTMARK_TOKEN'),
-    ],
+        // Create or retrieve Stripe customer
+        $stripeCustomerId = $user->stripe_customer_id;
+        
+        if (!$stripeCustomerId) {
+            $customer = Customer::create([
+                'email' => $user->email,
+                'name' => $user->name,
+                'metadata' => [
+                    'user_id' => $user->id,
+                ],
+            ]);
+            
+            $user->stripe_customer_id = $customer->id;
+            $user->save();
+            $stripeCustomerId = $customer->id;
+        }
 
-    'ses' => [
-        'key' => env('AWS_ACCESS_KEY_ID'),
-        'secret' => env('AWS_SECRET_ACCESS_KEY'),
-        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
-    ],
+        // Create checkout session
+        $session = Session::create([
+            'customer' => $stripeCustomerId,
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => 'usd',
+                    'product_data' => [
+                        'name' => $bundle->name . ' Bundle',
+                        'description' => $bundle->description,
+                        'metadata' => [
+                            'bundle_id' => $bundle->id,
+                            'bundle_slug' => $bundle->slug,
+                        ],
+                    ],
+                    'unit_amount' => $bundle->monthly_price * 100, // Convert to cents
+                    'recurring' => [
+                        'interval' => 'month',
+                    ],
+                ],
+                'quantity' => 1,
+            ]],
+            'mode' => 'subscription',
+            'success_url' => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => route('payment.cancel'),
+            'metadata' => [
+                'user_id' => $user->id,
+                'bundle_id' => $bundle->id,
+                'bundle_slug' => $bundle->slug,
+            ],
+        ]);
 
-    'resend' => [
-        'key' => env('RESEND_KEY'),
-    ],
+        return redirect($session->url);
+    }
 
-    'slack' => [
-        'notifications' => [
-            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
-            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
-        ],
-    ],
+    /**
+     * Handle successful payment
+     */
+    public function success(Request $request)
+    {
+        $sessionId = $request->get('session_id');
 
-];
+        if (!$sessionId) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Invalid session.');
+        }
+
+        try {
+            $session = Session::retrieve($sessionId);
+            
+            if ($session->payment_status === 'paid') {
+                $userId = $session->metadata['user_id'];
+                $bundleId = $session->metadata['bundle_id'];
+                $bundleSlug = $session->metadata['bundle_slug'];
+                $stripeSubscriptionId = $session->subscription;
+
+                $bundle = VerticalBundle::findOrFail($bundleId);
+
+                // Create or update subscription
+                Subscription::updateOrCreate(
+                    ['user_id' => $userId],
+                    [
+                        'vertical_bundle_id' => $bundleId,
+                        'stripe_subscription_id' => $stripeSubscriptionId,
+                        'status' => 'active',
+                        'monthly_price' => $bundle->monthly_price,
+                        'starts_at' => now(),
+                        'ends_at' => null,
+                    ]
+                );
+
+                // Update user's vertical type
+                $user = \App\Models\User::find($userId);
+                if ($user) {
+                    $user->vertical_type = $bundleSlug;
+                    $user->subscription_status = 'active';
+                    $user->save();
+                }
+
+                return view('billing.success', [
+                    'bundle' => $bundle,
+                    'session' => $session,
+                ]);
+            }
+        } catch (\Exception $e) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Payment verification failed: ' . $e->getMessage());
+        }
+
+        return redirect()->route('dashboard')
+            ->with('error', 'Payment was not completed.');
+    }
+
+    /**
+     * Handle cancelled checkout
+     */
+    public function cancel()
+    {
+        return view('billing.cancel');
+    }
+
+    /**
+     * Create customer billing portal session
+     */
+    public function portal()
+    {
+        $user = Auth::user();
+        
+        $subscription = Subscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$subscription || !$subscription->stripe_subscription_id) {
+            return redirect()->route('dashboard.billing')
+                ->with('error', 'No active subscription found.');
+        }
+
+        try {
+            $stripeCustomerId = $user->stripe_customer_id;
+            
+            if (!$stripeCustomerId) {
+                return redirect()->route('dashboard.billing')
+                    ->with('error', 'Customer record not found.');
+            }
+
+            $portalSession = \Stripe\BillingPortal\Session::create([
+                'customer' => $stripeCustomerId,
+                'return_url' => route('dashboard.billing'),
+            ]);
+
+            return redirect($portalSession->url);
+        } catch (\Exception $e) {
+            return redirect()->route('dashboard.billing')
+                ->with('error', 'Failed to create billing portal: ' . $e->getMessage());
+        }
+    }
+}
