@@ -1,121 +1,77 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    <title>@yield('title', config('app.name', 'PropAI'))</title>
-
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
-
-    <!-- Styles / Vite -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        header {
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 1rem 0;
-        }
-
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #2563eb;
-            text-decoration: none;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            list-style: none;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: #666;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: #2563eb;
-        }
-
-        main {
-            padding: 2rem 0;
-            min-height: calc(100vh - 200px);
-        }
-
-        footer {
-            background: #1f2937;
-            color: white;
-            padding: 2rem 0;
-            margin-top: 4rem;
-        }
-
-        .footer-content {
-            text-align: center;
-        }
-    </style>
-
+    <title>@yield('title', 'PropAI - AI Agents for Your Industry')</title>
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     @stack('styles')
 </head>
 <body>
-    <header>
-        <div class="container">
-            <nav>
-                <a href="/" class="logo">PropAI</a>
-                <ul class="nav-links">
-                    <li><a href="/">Home</a></li>
-                    <li><a href="/faq">FAQ</a></li>
-                </ul>
-            </nav>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <span class="logo-icon">🤖</span>
+                <span class="logo-text">PropAI</span>
+            </a>
+            <div class="nav-menu" id="navMenu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/#bundles" class="nav-link">Bundles</a>
+                <a href="/#features" class="nav-link">Features</a>
+                @auth
+                    <a href="/dashboard" class="nav-link">Dashboard</a>
+                    <a href="/logout" class="nav-btn nav-btn-secondary">Logout</a>
+                @else
+                    <a href="/login" class="nav-btn nav-btn-secondary">Login</a>
+                    <a href="/register" class="nav-btn nav-btn-primary">Get Started</a>
+                @endauth
+            </div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
         </div>
-    </header>
+    </nav>
 
     <main>
-        <div class="container">
-            @yield('content')
-        </div>
+        @yield('content')
     </main>
 
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <p>&copy; {{ date('Y') }} PropAI. All rights reserved.</p>
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3 class="footer-logo">
+                    <span class="logo-icon">🤖</span>
+                    PropAI
+                </h3>
+                <p class="footer-tagline">AI Agents for Your Industry - Subscribe & Automate</p>
             </div>
+            <div class="footer-section">
+                <h4>Product</h4>
+                <a href="/#bundles" class="footer-link">Bundles</a>
+                <a href="/#features" class="footer-link">Features</a>
+                <a href="/pricing" class="footer-link">Pricing</a>
+            </div>
+            <div class="footer-section">
+                <h4>Company</h4>
+                <a href="/about" class="footer-link">About</a>
+                <a href="/contact" class="footer-link">Contact</a>
+                <a href="/blog" class="footer-link">Blog</a>
+            </div>
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <a href="/privacy" class="footer-link">Privacy</a>
+                <a href="/terms" class="footer-link">Terms</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; {{ date('Y') }} PropAI. All rights reserved.</p>
         </div>
     </footer>
 
+    <script src="{{ asset('js/app.js') }}"></script>
     @stack('scripts')
 </body>
 </html>
