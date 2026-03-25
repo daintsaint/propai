@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "===== Starting Railway Build Process ====="
+echo "===== Starting Railway Build Process for Laravel 11 ====="
 
 # Install PHP dependencies
 echo "Installing Composer dependencies..."
@@ -11,7 +11,7 @@ composer install --no-dev --optimize-autoloader --no-interaction
 echo "Installing Node.js dependencies..."
 npm install
 
-echo "Building Vue 3 frontend..."
+echo "Building Vite frontend..."
 npm run build
 
 # Laravel optimizations
@@ -19,11 +19,13 @@ echo "Running Laravel optimizations..."
 php artisan config:cache
 php artisan event:cache
 php artisan route:cache
-php artisan view:cache
 
-# Set proper permissions for storage
+# Set up storage directories
 echo "Setting up storage directories..."
-mkdir -p storage/logs storage/framework/cache storage/framework/views storage/framework/sessions
+mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views
 chmod -R 775 storage bootstrap/cache
+
+# Create SQLite database directory
+mkdir -p data
 
 echo "===== Build Complete ====="
